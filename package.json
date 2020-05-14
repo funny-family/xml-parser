@@ -1,0 +1,31 @@
+{
+  "name": "node-homework-med-xml-parser",
+  "version": "1.0.1",
+  "description": "Парсер XML файлов мед. учреждений по профилю в JSON.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/koalex/medical-xml-parser.git"
+  },
+  "bugs": {
+    "url": "https://github.com/koalex/node-homework-med-xml-parser/issues"
+  },
+  "keywords": [
+    "sax",
+    "xml",
+    "json"
+  ],
+  "homepage": "https://github.com/koalex/node-homework-med-xml-parser#readme",
+  "engines": {
+    "node": ">=10.10.0",
+    "npm": ">=5"
+  },
+  "dependencies": {
+    "sax": "^1.2.4"
+  },
+  "devDependencies": {}
+}
