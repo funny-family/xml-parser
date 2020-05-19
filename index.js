@@ -1,53 +1,79 @@
+const fs = require('fs');
 const saxStream = require('sax').createStream(true, {
-  lowercase: true,
-  normalize: true,
-  xmlns: true
+    lowercase: true,
+    xmlns: true
 });
 
 const readStream = fs.createReadStream('./small.xml');
 const writeStream = fs.createWriteStream('./result.json');
 
-const result = [];
-let tagName;
-let organizations = {};
-const isDesiredSubstring = (text) => /Репрод|репрод/gm.test(text);
-let needToAddTag = false;
+let isNameTag = false;
+let isInnTag = false;
+let isWorksTag = false;
+let isFirstElement = true;
+let workTagsContainer = [];
+let tagName = '';
+let tagInn = '';
 
 readStream.pipe(saxStream);
 
-saxStream.on('opentag', tag => {
-  tagName = tag.name;
-});
-
-saxStream.on('text', tagText => {
-  if (tagName === 'name') {
-    organizations.name = tagText;
-    console.log(organizations)
-  }
-  if (tagName === 'inn') {
-    organizations.inn = tagText;
-    console.log(organizations)
-  } else if (tagName === 'work' && isDesiredSubstring(tagText)) {
-    needToAddTag = true;
-  }
-});
-
-saxStream.on('closetag', tag => {
-  if ('licenses' === tag) {
-    if (needToAddTag) {
-      result.push(organizations);
-    }
-    needToAddTag = false;
-  }
-});
-
 writeStream.write('[\n');
 
-writeStream.write(
-  JSON.stringify({
-    "name": "Пример",
-    "inn": "7841378964"
-  }) + '\n'
-);
+saxStream.on('opentag', tag => {
+  if (tag.name === 'name') {
+    isNameTag = true;
+  }
+  if (tag.name === 'inn') {
+    isInnTag = true;
+  }
+  if (tag.name === 'work') {
+    isWorksTag = true;
+  }
+});
 
-writeStream.end(']');
+saxStream.on('text', text => {
+  if (isNameTag) {
+    tagName = text;
+  }
+  if (isInnTag) {
+    tagInn = text;
+  }
+  if (isWorksTag) {
+    workTagsContainer.push(text);
+  }
+  isInnTag = false;
+  isNameTag = false;
+  isWorksTag = false;
+});
+
+const findSubstring = substring => substring.toLowerCase().includes('репрод');
+
+saxStream.on('closetag', tag => {
+  if (tag === 'licenses') {
+    const isSubstring = workTagsContainer.some(findSubstring);
+    if (tagName && tagInn && isSubstring) {
+      if (isFirstElement) {
+        writeStream.write(
+          JSON.stringify({
+            'name': tagName,
+            'inn': tagInn
+          }, null, 2)
+        );
+        isFirstElement = false;
+      } else {
+        writeStream.write(',\n' +
+          JSON.stringify({
+            'name': tagName,
+            'inn': tagInn
+          }, null, 2)
+        );
+      }
+      tagName = '';
+      tagInn = '';
+    }
+    workTagsContainer = [];
+  }
+  if (tag === 'licenses_list') {
+    writeStream.end(']');
+  }
+});
